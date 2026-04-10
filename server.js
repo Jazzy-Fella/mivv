@@ -111,6 +111,17 @@ app.get('/api/systems', (req, res) => {
 });
 
 // Search games
+// Browse all games for a system A-Z
+app.get('/api/browse/:system', (req, res) => {
+  const { system } = req.params;
+  const sysObj = SYSTEMS.find(s => s.code === system);
+  if (!sysObj) return res.status(404).json({ error: 'Unknown system' });
+  const games = getIndex()
+    .filter(g => g.system === system)
+    .sort((a, b) => a.title.localeCompare(b.title));
+  res.json({ system: sysObj.code, name: sysObj.name, total: games.length, games });
+});
+
 app.get('/api/search', (req, res) => {
   const { q, system } = req.query;
   if (!q || q.trim().length < 2) return res.json([]);

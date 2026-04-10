@@ -566,6 +566,136 @@
 
     .modal-actions { display: flex; gap: 0.5rem; }
 
+    /* ── Browse section (system tiles) ── */
+    .browse-section {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 2rem 1.5rem;
+    }
+
+    .browse-section-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.85rem;
+    }
+
+    .tiles-group { margin-bottom: 1rem; }
+
+    .tiles-group-name {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.62rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+      padding-left: 2px;
+    }
+
+    .tiles-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .system-tile {
+      background: var(--surface);
+      border: 2px solid rgba(0,0,0,0.45);
+      border-top: 4px solid var(--tile-color, #555);
+      border-radius: 2px;
+      padding: 0.3rem 0.6rem 0.35rem;
+      cursor: pointer;
+      transition: transform 0.12s, box-shadow 0.12s;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 0.05rem;
+      min-width: 72px;
+    }
+
+    .system-tile:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+    }
+
+    .tile-code {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1rem;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .tile-name {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.58rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      line-height: 1.2;
+    }
+
+    /* ── Browse view header ── */
+    .browse-header {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding-bottom: 0.85rem;
+      margin-bottom: 0.25rem;
+      border-bottom: 2px solid rgba(0,0,0,0.14);
+    }
+
+    .back-btn {
+      background: transparent;
+      border: 2px solid rgba(0,0,0,0.4);
+      border-radius: 2px;
+      padding: 0.35rem 0.8rem;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: border-color 0.12s, background 0.12s;
+      white-space: nowrap;
+    }
+
+    .back-btn:hover { border-color: var(--sega-red); background: rgba(204,17,34,0.06); }
+
+    .browse-system-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+
+    .browse-count {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-left: auto;
+    }
+
+    .browse-sentinel { grid-column: 1 / -1; height: 1px; }
+
+    @media (max-width: 600px) {
+      .browse-section { padding: 0 1rem 1.25rem; }
+      .system-tile { min-width: 60px; padding: 0.25rem 0.45rem 0.3rem; }
+      .tile-code { font-size: 0.9rem; }
+    }
+
     /* ── Lightbox ── */
     .lightbox {
       position: fixed;
@@ -772,6 +902,8 @@
 
 <div class="status-bar" id="statusBar"></div>
 
+<div class="browse-section" id="browseSection" style="display:none"></div>
+
 <div class="results" id="results">
   <div class="empty">
     <div class="sonic-box">
@@ -816,6 +948,7 @@ function showToast(msg, duration = 3000) {
 // ── Home ──
 function goHome() {
   closeModal();
+  if (browseObserver) browseObserver.disconnect();
   searchInput.value = '';
   statusBar.textContent = '';
   resultsEl.innerHTML = `
@@ -825,6 +958,7 @@ function goHome() {
       </div>
       <p><strong>Enter a game title to get started</strong></p>
     </div>`;
+  if (loadedSystems.length) browseSection.style.display = '';
   searchInput.focus();
 }
 
@@ -851,6 +985,7 @@ async function loadSystems() {
       });
       systemSelect.appendChild(optgroup);
     });
+    renderSystemTiles(systems);
   } catch (e) {
     console.error('Failed to load systems:', e);
   }
@@ -867,6 +1002,7 @@ async function doSearch() {
   searchBtn.disabled = true;
   searchBtn.textContent = 'Searching…';
   statusBar.textContent = '';
+  browseSection.style.display = 'none';
   resultsEl.innerHTML = '<div class="spinner"><div class="spinner-ring"></div></div>';
 
   try {
@@ -887,12 +1023,51 @@ async function doSearch() {
   }
 }
 
+// ── System tile colours by manufacturer ──
+const SYSTEM_COLORS = {
+  NES:'#e4000f', SNES:'#e4000f', N64:'#e4000f', GameCube:'#e4000f',
+  Wii:'#e4000f', WiiWare:'#e4000f', GB:'#e4000f', GBC:'#e4000f',
+  GBA:'#e4000f', DS:'#e4000f', '3DS':'#e4000f', VB:'#e4000f',
+  SMS:'#0050b3', Genesis:'#0050b3', SegaCD:'#0050b3', '32X':'#0050b3',
+  Saturn:'#0050b3', Dreamcast:'#0050b3', GG:'#0050b3',
+  PS1:'#003087', PS2:'#003087', PS3:'#003087', PSP:'#003087',
+  Xbox:'#107c10', Xbox360:'#107c10',
+  Atari2600:'#c94a1e', Atari5200:'#c94a1e', Atari7800:'#c94a1e',
+  Jaguar:'#c94a1e', Lynx:'#c94a1e',
+  TG16:'#7c3aed', TGCD:'#7c3aed',
+  CDi:'#555555',
+};
+
 function ratingClass(r) {
   const n = parseFloat(r);
   if (isNaN(n)) return '';
   if (n >= 8) return 'rating-high';
   if (n >= 6) return 'rating-mid';
   return 'rating-low';
+}
+
+function cardHtml(g) {
+  return `
+    <div class="card" data-id="${g.id}" data-system="${escHtml(g.systemName)}">
+      <div class="card-art-wrap">
+        <img class="card-art" src="/api/image?v=2&id=${g.id}" alt="" loading="lazy"
+          onerror="this.parentElement.innerHTML='<div class=\\'card-art no-art\\'>No Boxart</div>'">
+      </div>
+      <div class="card-body">
+        <div class="card-title">${escHtml(g.title)}</div>
+        <div class="card-meta">
+          <span class="card-system">${escHtml(g.systemName)}</span>
+          ${g.rating ? `<span class="card-rating ${ratingClass(g.rating)}">${g.rating}</span>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+function attachCardListeners(container) {
+  container.querySelectorAll('.card:not([data-bound])').forEach(card => {
+    card.dataset.bound = '1';
+    card.addEventListener('click', () => openModal(card.dataset.id));
+  });
 }
 
 function renderResults(games, query) {
@@ -906,30 +1081,8 @@ function renderResults(games, query) {
     return;
   }
 
-  resultsEl.innerHTML = games.map(g => `
-    <div class="card" data-id="${g.id}" data-system="${escHtml(g.systemName)}">
-      <div class="card-art-wrap">
-        <img
-          class="card-art"
-          src="/api/image?v=2&id=${g.id}"
-          alt=""
-          loading="lazy"
-          onerror="this.parentElement.innerHTML='<div class=\\'card-art no-art\\'>No Boxart</div>'"
-        >
-      </div>
-      <div class="card-body">
-        <div class="card-title">${escHtml(g.title)}</div>
-        <div class="card-meta">
-          <span class="card-system">${escHtml(g.systemName)}</span>
-          ${g.rating ? `<span class="card-rating ${ratingClass(g.rating)}">${g.rating}</span>` : ''}
-        </div>
-      </div>
-    </div>
-  `).join('');
-
-  resultsEl.querySelectorAll('.card').forEach(card => {
-    card.addEventListener('click', () => openModal(card.dataset.id));
-  });
+  resultsEl.innerHTML = games.map(cardHtml).join('');
+  attachCardListeners(resultsEl);
 }
 
 // Modal
@@ -1027,6 +1180,95 @@ function renderModal(game) {
       }, 1000);
     });
   }
+}
+
+// ── System tiles ──
+const browseSection = document.getElementById('browseSection');
+let loadedSystems = [];
+
+function renderSystemTiles(systems) {
+  loadedSystems = systems;
+  const groups = {};
+  systems.forEach(s => {
+    if (!groups[s.group]) groups[s.group] = [];
+    groups[s.group].push(s);
+  });
+
+  browseSection.innerHTML = `
+    <div class="browse-section-label">Browse by System</div>
+    ${Object.entries(groups).map(([group, list]) => `
+      <div class="tiles-group">
+        <div class="tiles-group-name">${escHtml(group)}</div>
+        <div class="tiles-grid">
+          ${list.map(s => `
+            <button class="system-tile" data-code="${escHtml(s.code)}" data-name="${escHtml(s.name)}"
+              style="--tile-color:${SYSTEM_COLORS[s.code] || '#555'}">
+              <span class="tile-code">${escHtml(s.code)}</span>
+              <span class="tile-name">${escHtml(s.name)}</span>
+            </button>`).join('')}
+        </div>
+      </div>`).join('')}`;
+
+  browseSection.querySelectorAll('.system-tile').forEach(tile => {
+    tile.addEventListener('click', () => browseSystem(tile.dataset.code, tile.dataset.name));
+  });
+  browseSection.style.display = '';
+}
+
+// ── Browse view ──
+let browseGames = [];
+let browseRendered = 0;
+const BROWSE_BATCH = 40;
+let browseObserver = null;
+
+async function browseSystem(code, name) {
+  browseSection.style.display = 'none';
+  statusBar.textContent = `Loading ${name}…`;
+  resultsEl.innerHTML = '<div class="spinner"><div class="spinner-ring"></div></div>';
+
+  try {
+    const res = await fetch(`/api/browse/${code}`);
+    const data = await res.json();
+    browseGames = data.games;
+    browseRendered = 0;
+
+    statusBar.textContent = `${browseGames.length} games — ${name}`;
+    resultsEl.innerHTML = `
+      <div class="browse-header">
+        <button class="back-btn" id="backBtn">← Back</button>
+        <span class="browse-system-title">${escHtml(name)}</span>
+        <span class="browse-count">${browseGames.length} games</span>
+      </div>
+      <div id="browseSentinel" class="browse-sentinel"></div>`;
+
+    document.getElementById('backBtn').addEventListener('click', goHome);
+    renderBrowseBatch();
+    setupBrowseObserver();
+  } catch (err) {
+    statusBar.textContent = '';
+    resultsEl.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><h3>Failed to load</h3></div>`;
+    browseSection.style.display = '';
+  }
+}
+
+function renderBrowseBatch() {
+  const sentinel = document.getElementById('browseSentinel');
+  if (!sentinel) return;
+  const batch = browseGames.slice(browseRendered, browseRendered + BROWSE_BATCH);
+  if (!batch.length) return;
+  browseRendered += batch.length;
+  sentinel.insertAdjacentHTML('beforebegin', batch.map(cardHtml).join(''));
+  attachCardListeners(resultsEl);
+}
+
+function setupBrowseObserver() {
+  if (browseObserver) browseObserver.disconnect();
+  const sentinel = document.getElementById('browseSentinel');
+  if (!sentinel) return;
+  browseObserver = new IntersectionObserver(entries => {
+    if (entries[0].isIntersecting) renderBrowseBatch();
+  }, { rootMargin: '300px' });
+  browseObserver.observe(sentinel);
 }
 
 // ── Lightbox ──
