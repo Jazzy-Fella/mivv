@@ -254,6 +254,31 @@ app.get('/api/screenshot', async (req, res) => {
   }
 });
 
+// Temporary debug endpoint — reveals what Vimm.net actually sends to this server
+app.get('/api/debug-fetch', async (req, res) => {
+  const url = 'https://vimm.net/vault/SMS/S';
+  try {
+    const r = await fetch(url, { headers: HEADERS });
+    const text = await r.text();
+    const $ = cheerio.load(text);
+    const links = [];
+    $('table tr').each((_, row) => {
+      const a = $(row).find('td a[href^="/vault/"]').first();
+      const href = a.attr('href');
+      if (href) links.push(href);
+    });
+    res.json({
+      status: r.status,
+      contentEncoding: r.headers.get('content-encoding'),
+      contentLength: text.length,
+      preview: text.slice(0, 300),
+      vaultLinks: links.slice(0, 20),
+    });
+  } catch (e) {
+    res.json({ error: e.message });
+  }
+});
+
 // ── Scraping helpers ────────────────────────────────────────────────────────
 
 async function fetchPage(url) {
