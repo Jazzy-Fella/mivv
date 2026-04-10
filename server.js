@@ -504,6 +504,11 @@ app.get('/api/wiki', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Vimm Search running at http://localhost:${PORT}`);
-});
+// Export for Vercel serverless; listen locally when run directly
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Vimm Search running at http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;
