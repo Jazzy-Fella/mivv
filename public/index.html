@@ -566,6 +566,39 @@
 
     .modal-actions { display: flex; gap: 0.5rem; }
 
+    /* ── Lightbox ── */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.92);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: zoom-out;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
+    .lightbox.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .lightbox img {
+      max-width: 94vw;
+      max-height: 94vh;
+      object-fit: contain;
+      border-radius: 2px;
+      box-shadow: 0 8px 60px rgba(0,0,0,0.6);
+      image-rendering: pixelated;
+    }
+
+    .zoomable {
+      cursor: zoom-in;
+    }
+
     /* ── Wikipedia section ── */
     .wiki-section {
       margin-bottom: 1.25rem;
@@ -748,6 +781,11 @@
   </div>
 </div>
 
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox">
+  <img id="lightboxImg" src="" alt="">
+</div>
+
 <!-- Modal -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal" id="modal">
@@ -928,13 +966,13 @@ function renderModal(game) {
   const screenshotImgs = [game.screenshotTitle, game.screenshotSnap]
     .filter(Boolean)
     .map(src => `
-      <img class="screenshot" src="${escHtml(src)}" alt="Screenshot" loading="lazy"
+      <img class="screenshot zoomable" src="${escHtml(src)}" alt="Screenshot" loading="lazy"
         onerror="this.parentElement && this.parentElement.removeChild(this)">
     `).join('');
 
   modalContent.innerHTML = `
     <div class="modal-header">
-      <img class="modal-boxart" src="/api/image?type=box&id=${game.id}" alt="Box art"
+      <img class="modal-boxart zoomable" src="/api/image?type=box&id=${game.id}" alt="Box art"
         onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
       <div class="modal-boxart no-art" style="display:none">🎮</div>
       <div class="modal-info">
@@ -948,7 +986,7 @@ function renderModal(game) {
       ${screenshotImgs ? `<div class="modal-screenshots">${screenshotImgs}</div>` : ''}
       <div id="wikiSection" class="wiki-section">
         <div class="wiki-header">
-          <span class="wiki-label">Wikipedia</span>
+          <span class="wiki-label">Info</span>
         </div>
         <div class="wiki-loading">Loading…</div>
       </div>
@@ -961,6 +999,11 @@ function renderModal(game) {
   `;
 
   document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+
+  // Zoomable images → lightbox
+  modalContent.querySelectorAll('.zoomable').forEach(img => {
+    img.addEventListener('click', () => openLightbox(img.src));
+  });
 
   // Fetch Wikipedia summary asynchronously
   fetchWiki(game.title, game.systemName);
@@ -986,6 +1029,24 @@ function renderModal(game) {
   }
 }
 
+// ── Lightbox ──
+const lightbox = document.getElementById('lightbox');
+const lightboxImg = document.getElementById('lightboxImg');
+
+function openLightbox(src) {
+  lightboxImg.src = src;
+  lightbox.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+  lightbox.classList.remove('open');
+  lightboxImg.src = '';
+  document.body.style.overflow = '';
+}
+
+lightbox.addEventListener('click', closeLightbox);
+
 async function fetchWiki(title, system) {
   const section = document.getElementById('wikiSection');
   if (!section) return;
@@ -996,7 +1057,7 @@ async function fetchWiki(title, system) {
     if (data.extract) {
       section.innerHTML = `
         <div class="wiki-header">
-          <span class="wiki-label">Wikipedia</span>
+          <span class="wiki-label">Info</span>
           ${data.url ? `<a class="wiki-link" href="${escHtml(data.url)}" target="_blank" rel="noopener">Read more ↗</a>` : ''}
         </div>
         <div class="wiki-extract">${escHtml(data.extract)}</div>`;
@@ -1018,7 +1079,10 @@ modalOverlay.addEventListener('click', (e) => {
 });
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closeModal();
+  if (e.key === 'Escape') {
+    if (lightbox.classList.contains('open')) closeLightbox();
+    else closeModal();
+  }
   if (e.key === 'Enter' && document.activeElement === searchInput) doSearch();
 });
 
