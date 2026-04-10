@@ -111,15 +111,11 @@ app.get('/api/systems', (req, res) => {
 });
 
 // Search games
-app.get('/api/search', async (req, res) => {
+app.get('/api/search', (req, res) => {
   const { q, system } = req.query;
-  if (!q || q.trim().length < 2) {
-    return res.json([]);
-  }
-
+  if (!q || q.trim().length < 2) return res.json([]);
   try {
-    const results = await searchGames(q.trim(), system);
-    res.json(results);
+    res.json(searchGames(q.trim(), system));
   } catch (err) {
     console.error('Search error:', err.message);
     res.status(500).json({ error: err.message });
@@ -254,40 +250,19 @@ app.get('/api/screenshot', async (req, res) => {
   }
 });
 
-// Temporary debug endpoint — reveals what Vimm.net actually sends to this server
-app.get('/api/debug-fetch', async (req, res) => {
-  const url = 'https://vimm.net/vault/SMS/S';
-  try {
-    const r = await fetch(url, { headers: HEADERS });
-    const text = await r.text();
-    const $ = cheerio.load(text);
-    const rows = [];
-    $('table tr').each((_, row) => {
-      const cells = $(row).find('td').length;
-      const a = $(row).find('td a[href^="/vault/"]').first();
-      const href = a.attr('href') || null;
-      const title = a.text().trim() || null;
-      if (cells > 0) rows.push({ cells, href, title });
-    });
-    // Also look for ANY anchor with /vault/ to catch different structures
-    const allVaultLinks = [];
-    $('a[href^="/vault/"]').each((_, a) => {
-      const href = $(a).attr('href');
-      const text = $(a).text().trim();
-      if (/\/vault\/\d+$/.test(href)) allVaultLinks.push({ href, text });
-    });
-    res.json({
-      status: r.status,
-      contentEncoding: r.headers.get('content-encoding'),
-      contentLength: text.length,
-      totalTableRows: rows.length,
-      tableRows: rows,
-      allNumericVaultLinks: allVaultLinks,
-    });
-  } catch (e) {
-    res.json({ error: e.message });
+// ── Game index (pre-built locally, used for search on Vercel) ───────────────
+let gameIndex = null;
+function getIndex() {
+  if (!gameIndex) {
+    try {
+      const data = require('./public/games-index.json');
+      gameIndex = data.games;
+    } catch {
+      gameIndex = [];
+    }
   }
-});
+  return gameIndex;
+}
 
 // ── Scraping helpers ────────────────────────────────────────────────────────
 
@@ -302,33 +277,16 @@ function getLetter(query) {
   return /[0-9]/.test(first) ? '%23' : first;
 }
 
-async function searchGames(query, system) {
-  const letter = getLetter(query);
-  const systemsToSearch = (system && system !== '0')
-    ? [system]
-    : SYSTEMS.map(s => s.code);
-
-  const results = [];
-
-  await Promise.all(
-    systemsToSearch.map(async (sys) => {
-      try {
-        const url = `${VIMM_BASE}/vault/${sys}/${letter}`;
-        const html = await fetchPage(url);
-        const games = parseGameList(html, sys);
-        const queryLower = query.toLowerCase();
-        const filtered = games.filter(g =>
-          g.title.toLowerCase().includes(queryLower)
-        );
-        results.push(...filtered);
-      } catch {
-        // Skip systems with errors (e.g. no games starting with that letter)
-      }
-    })
-  );
-
-  // Sort by title relevance (exact start match first)
+function searchGames(query, system) {
   const qLower = query.toLowerCase();
+  const games = getIndex();
+
+  let results = games.filter(g => {
+    if (system && system !== '0' && g.system !== system) return false;
+    return g.title.toLowerCase().includes(qLower);
+  });
+
+  // Sort: exact start matches first, then alphabetical
   results.sort((a, b) => {
     const aStarts = a.title.toLowerCase().startsWith(qLower);
     const bStarts = b.title.toLowerCase().startsWith(qLower);
