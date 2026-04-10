@@ -75,12 +75,10 @@ const SYSTEMS = [
   { code: 'Xbox360',   name: 'Xbox 360',          group: 'Consoles' },
   { code: 'X360-D',   name: 'Xbox 360 Digital',  group: 'Consoles' },
   { code: 'Atari2600', name: 'Atari 2600',       group: 'Consoles' },
-  { code: 'Atari5200', name: 'Atari 5200',       group: 'Consoles' },
   { code: 'Atari7800', name: 'Atari 7800',       group: 'Consoles' },
   { code: 'Jaguar',    name: 'Jaguar',           group: 'Consoles' },
   { code: 'JaguarCD',  name: 'Jaguar CD',        group: 'Consoles' },
   { code: 'TG16',      name: 'TurboGrafx-16',    group: 'Consoles' },
-  { code: 'TGCD',      name: 'TurboGrafx-CD',    group: 'Consoles' },
   { code: 'CDi',       name: 'CD-i',             group: 'Consoles' },
   // Handhelds
   { code: 'GB',        name: 'Game Boy',         group: 'Handhelds' },
@@ -90,7 +88,6 @@ const SYSTEMS = [
   { code: '3DS',       name: '3DS',              group: 'Handhelds' },
   { code: 'GG',        name: 'Game Gear',        group: 'Handhelds' },
   { code: 'Lynx',      name: 'Lynx',             group: 'Handhelds' },
-  { code: 'VB',        name: 'Virtual Boy',      group: 'Handhelds' },
   { code: 'PSP',       name: 'PSP',              group: 'Handhelds' },
 ];
 
