@@ -474,6 +474,36 @@ async function getGameDetails(id) {
   };
 }
 
+// Wikipedia summary for a game title + system
+app.get('/api/wiki', async (req, res) => {
+  const { title, system } = req.query;
+  if (!title) return res.json({ extract: null });
+
+  try {
+    // Search Wikipedia — include system name for better precision
+    const query = system ? `${title} ${system} video game` : `${title} video game`;
+    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&srlimit=1&origin=*`;
+    const searchRes = await fetch(searchUrl, { headers: { 'User-Agent': 'MIVV-Vault-Search/1.0' } });
+    const searchData = await searchRes.json();
+
+    const results = searchData.query?.search;
+    if (!results?.length) return res.json({ extract: null });
+
+    // Fetch the page summary from the REST API
+    const pageTitle = results[0].title;
+    const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(pageTitle)}`;
+    const summaryRes = await fetch(summaryUrl, { headers: { 'User-Agent': 'MIVV-Vault-Search/1.0' } });
+    const summary = await summaryRes.json();
+
+    res.json({
+      extract: summary.extract || null,
+      url: summary.content_urls?.desktop?.page || null,
+    });
+  } catch (e) {
+    res.json({ extract: null });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Vimm Search running at http://localhost:${PORT}`);
 });

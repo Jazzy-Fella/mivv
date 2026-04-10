@@ -566,6 +566,58 @@
 
     .modal-actions { display: flex; gap: 0.5rem; }
 
+    /* ── Wikipedia section ── */
+    .wiki-section {
+      margin-bottom: 1.25rem;
+      border: 1.5px solid rgba(0,0,0,0.15);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .wiki-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface2);
+      border-bottom: 1.5px solid rgba(0,0,0,0.15);
+      padding: 0.35rem 0.75rem;
+    }
+
+    .wiki-label {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .wiki-link {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--sega-blue);
+      text-decoration: none;
+    }
+
+    .wiki-link:hover { text-decoration: underline; }
+
+    .wiki-extract {
+      padding: 0.75rem;
+      font-size: 0.875rem;
+      line-height: 1.6;
+      color: var(--text);
+    }
+
+    .wiki-loading {
+      padding: 0.75rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
     .btn-primary {
       background: var(--sega-red);
       color: white;
@@ -894,6 +946,12 @@ function renderModal(game) {
     </div>
     <div class="modal-body">
       ${screenshotImgs ? `<div class="modal-screenshots">${screenshotImgs}</div>` : ''}
+      <div id="wikiSection" class="wiki-section">
+        <div class="wiki-header">
+          <span class="wiki-label">Wikipedia</span>
+        </div>
+        <div class="wiki-loading">Loading…</div>
+      </div>
       <div class="modal-actions">
         ${game.mediaId ? `<button class="btn-primary" id="downloadBtn" data-media-id="${escHtml(game.mediaId)}">⬇ Download</button>` : ''}
         <a class="btn-secondary" href="${escHtml(game.vaultUrl)}" target="_blank" rel="noopener">View on Vimm</a>
@@ -903,6 +961,9 @@ function renderModal(game) {
   `;
 
   document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+
+  // Fetch Wikipedia summary asynchronously
+  fetchWiki(game.title, game.systemName);
 
   const dlBtn = document.getElementById('downloadBtn');
   if (dlBtn) {
@@ -922,6 +983,28 @@ function renderModal(game) {
         dlBtn.style.borderColor = 'var(--green)';
       }, 1000);
     });
+  }
+}
+
+async function fetchWiki(title, system) {
+  const section = document.getElementById('wikiSection');
+  if (!section) return;
+  try {
+    const params = new URLSearchParams({ title, system: system || '' });
+    const res = await fetch(`/api/wiki?${params}`);
+    const data = await res.json();
+    if (data.extract) {
+      section.innerHTML = `
+        <div class="wiki-header">
+          <span class="wiki-label">Wikipedia</span>
+          ${data.url ? `<a class="wiki-link" href="${escHtml(data.url)}" target="_blank" rel="noopener">Read more ↗</a>` : ''}
+        </div>
+        <div class="wiki-extract">${escHtml(data.extract)}</div>`;
+    } else {
+      section.remove();
+    }
+  } catch {
+    section.remove();
   }
 }
 
