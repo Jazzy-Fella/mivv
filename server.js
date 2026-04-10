@@ -261,18 +261,28 @@ app.get('/api/debug-fetch', async (req, res) => {
     const r = await fetch(url, { headers: HEADERS });
     const text = await r.text();
     const $ = cheerio.load(text);
-    const links = [];
+    const rows = [];
     $('table tr').each((_, row) => {
+      const cells = $(row).find('td').length;
       const a = $(row).find('td a[href^="/vault/"]').first();
-      const href = a.attr('href');
-      if (href) links.push(href);
+      const href = a.attr('href') || null;
+      const title = a.text().trim() || null;
+      if (cells > 0) rows.push({ cells, href, title });
+    });
+    // Also look for ANY anchor with /vault/ to catch different structures
+    const allVaultLinks = [];
+    $('a[href^="/vault/"]').each((_, a) => {
+      const href = $(a).attr('href');
+      const text = $(a).text().trim();
+      if (/\/vault\/\d+$/.test(href)) allVaultLinks.push({ href, text });
     });
     res.json({
       status: r.status,
       contentEncoding: r.headers.get('content-encoding'),
       contentLength: text.length,
-      preview: text.slice(0, 300),
-      vaultLinks: links.slice(0, 20),
+      totalTableRows: rows.length,
+      tableRows: rows,
+      allNumericVaultLinks: allVaultLinks,
     });
   } catch (e) {
     res.json({ error: e.message });
