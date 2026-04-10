@@ -904,14 +904,7 @@
 
 <div class="browse-section" id="browseSection" style="display:none"></div>
 
-<div class="results" id="results">
-  <div class="empty">
-    <div class="sonic-box">
-      <img src="/sonic.png" alt="Sonic">
-    </div>
-    <p><strong>Enter a game title to get started</strong></p>
-  </div>
-</div>
+<div class="results" id="results"></div>
 
 <!-- Lightbox -->
 <div class="lightbox" id="lightbox">
@@ -951,13 +944,7 @@ function goHome() {
   if (browseObserver) browseObserver.disconnect();
   searchInput.value = '';
   statusBar.textContent = '';
-  resultsEl.innerHTML = `
-    <div class="empty">
-      <div class="sonic-box">
-        <img src="/sonic.png" alt="Sonic">
-      </div>
-      <p><strong>Enter a game title to get started</strong></p>
-    </div>`;
+  resultsEl.innerHTML = '';
   if (loadedSystems.length) browseSection.style.display = '';
   searchInput.focus();
 }
