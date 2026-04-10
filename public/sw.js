@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mivv-v1';
+const CACHE_NAME = 'mivv-v2';
 
 // Static assets to cache on install
 const PRECACHE = [
