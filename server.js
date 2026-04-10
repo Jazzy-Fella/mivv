@@ -314,24 +314,24 @@ function parseGameList(html, systemCode) {
   const systemName = SYSTEMS.find(s => s.code === systemCode)?.name || systemCode;
   const games = [];
 
-  // Game rows are in a table; each title cell has an <a href="/vault/ID">
   $('table tr').each((_, row) => {
-    const link = $(row).find('td a[href^="/vault/"]').first();
+    const titleCell = $(row).find('td').first();
+    const link = titleCell.find('a[href^="/vault/"]').first();
     const href = link.attr('href');
     if (!href) return;
 
     const match = href.match(/^\/vault\/(\d+)$/);
     if (!match) return;
 
-    const id = match[1];
     const title = link.text().trim();
     if (!title) return;
 
-    // Rating is typically in the last <td> with a link
+    // Skip fan translations (marked with <b class="redBorder">T</b>)
+    if (titleCell.find('b.redBorder').text().trim() === 'T') return;
+
     const ratingCell = $(row).find('td').last().find('a');
     const rating = ratingCell.text().trim() || null;
 
-    // Region flags
     const regions = [];
     $(row).find('img[src*="/images/flags/"]').each((_, img) => {
       const src = $(img).attr('src') || '';
@@ -339,7 +339,7 @@ function parseGameList(html, systemCode) {
       regions.push(region);
     });
 
-    games.push({ id, title, system: systemCode, systemName, rating, regions });
+    games.push({ id: match[1], title, system: systemCode, systemName, rating, regions });
   });
 
   return games;
