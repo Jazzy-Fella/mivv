@@ -97,10 +97,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Return systems list for frontend dropdown
 app.get('/api/systems', (req, res) => {
+  const counts = {};
+  getIndex().forEach(g => { counts[g.system] = (counts[g.system] || 0) + 1; });
   const sorted = [...SYSTEMS].sort((a, b) =>
     a.group.localeCompare(b.group) || a.name.localeCompare(b.name)
   );
-  res.json(sorted);
+  res.json(sorted.map(s => ({ ...s, count: counts[s.code] || 0 })));
 });
 
 // Search games
