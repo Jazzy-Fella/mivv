@@ -455,6 +455,30 @@
       flex-shrink: 0;
     }
 
+    .modal-close-row {
+      display: flex;
+      justify-content: flex-end;
+      padding: 1.25rem 0.75rem 0;
+    }
+
+    .modal-close {
+      width: 34px;
+      height: 34px;
+      background: var(--sega-red);
+      border: none;
+      border-radius: 2px;
+      color: white;
+      font-size: 1.1rem;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+    }
+
+    .modal-close:hover { background: var(--sega-red-hover); }
+
     .modal-header {
       display: flex;
       align-items: flex-start;
@@ -1114,6 +1138,9 @@ function renderModal(game) {
     `).join('');
 
   modalContent.innerHTML = `
+    <div class="modal-close-row">
+      <button class="modal-close" id="closeModalBtn" aria-label="Close">✕</button>
+    </div>
     <div class="modal-header">
       <img class="modal-boxart zoomable" src="/api/image?type=box&id=${game.id}" alt="Box art"
         onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
@@ -1136,10 +1163,10 @@ function renderModal(game) {
       <div class="modal-actions">
         ${game.mediaId ? `<button class="btn-primary" id="downloadBtn" data-media-id="${escHtml(game.mediaId)}">⬇ Download</button>` : ''}
         <a class="btn-secondary" href="${escHtml(game.vaultUrl)}" target="_blank" rel="noopener">View on Vimm</a>
-        <button class="btn-secondary" id="closeModalBtn">Close</button>
       </div>
     </div>
   `;
+
 
   document.getElementById('closeModalBtn').addEventListener('click', closeModal);
 
