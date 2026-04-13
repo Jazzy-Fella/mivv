@@ -1185,10 +1185,8 @@ function renderSystemTiles(systems) {
   });
 
   browseSection.innerHTML = `
-    <div class="browse-section-label">Browse by System</div>
     ${Object.entries(groups).map(([group, list]) => `
       <div class="tiles-group">
-        <div class="tiles-group-name">${escHtml(group)}</div>
         <div class="tiles-grid">
           ${list.map(s => `
             <button class="system-tile" data-code="${escHtml(s.code)}" data-name="${escHtml(s.name)}"
