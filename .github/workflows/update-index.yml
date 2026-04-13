@@ -1,0 +1,39 @@
+name: Update Game Index
+
+on:
+  schedule:
+    - cron: '0 3 * * 0'   # Every Sunday at 3am UTC
+  workflow_dispatch:        # Allow manual trigger from GitHub UI
+
+permissions:
+  contents: write
+
+jobs:
+  update-index:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build game index
+        run: node build-index.js
+
+      - name: Commit and push if index changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/games-index.json
+          git diff --staged --quiet && echo "No changes to index." || (
+            git commit -m "chore: update game index [$(date -u +%Y-%m-%d)]" &&
+            git push
+          )

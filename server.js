@@ -104,6 +104,14 @@ app.get('/api/systems', (req, res) => {
 });
 
 // Search games
+// Random game
+app.get('/api/random', (req, res) => {
+  const { system } = req.query;
+  const games = getIndex().filter(g => !system || system === '0' || g.system === system);
+  if (!games.length) return res.status(404).json({ error: 'No games found' });
+  res.json(games[Math.floor(Math.random() * games.length)]);
+});
+
 // Browse all games for a system A-Z
 app.get('/api/browse/:system', (req, res) => {
   const { system } = req.params;
@@ -282,24 +290,41 @@ function getLetter(query) {
 }
 
 function searchGames(query, system) {
-  const qLower = query.toLowerCase();
+  // Normalise: lowercase, collapse punctuation to spaces so
+  // "zelda: ocarina" and "zelda ocarina" both tokenise the same way
+  const normalize = s => s.toLowerCase()
+    .replace(/[:\-–—!?'"]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const qNorm = normalize(query);
+  const words  = qNorm.split(' ').filter(w => w.length > 0);
+  if (!words.length) return [];
+
   const games = getIndex();
+  const scored = [];
 
-  let results = games.filter(g => {
-    if (system && system !== '0' && g.system !== system) return false;
-    return g.title.toLowerCase().includes(qLower);
-  });
+  for (const g of games) {
+    if (system && system !== '0' && g.system !== system) continue;
 
-  // Sort: exact start matches first, then alphabetical
-  results.sort((a, b) => {
-    const aStarts = a.title.toLowerCase().startsWith(qLower);
-    const bStarts = b.title.toLowerCase().startsWith(qLower);
-    if (aStarts && !bStarts) return -1;
-    if (!aStarts && bStarts) return 1;
-    return a.title.localeCompare(b.title);
-  });
+    const tNorm = normalize(g.title);
+    let score = 0;
 
-  return results.slice(0, 60);
+    if (tNorm.includes(qNorm)) {
+      // Exact phrase found — highest priority, boost if title starts with it
+      score = tNorm.startsWith(qNorm) ? 100 : 80;
+    } else if (words.length > 1) {
+      // Multi-word: every word must appear somewhere in the title
+      if (words.every(w => tNorm.includes(w))) {
+        score = tNorm.startsWith(words[0]) ? 60 : 40;
+      }
+    }
+
+    if (score > 0) scored.push({ game: g, score });
+  }
+
+  scored.sort((a, b) => b.score - a.score || a.game.title.localeCompare(b.game.title));
+  return scored.slice(0, 60).map(s => s.game);
 }
 
 function parseGameList(html, systemCode) {
