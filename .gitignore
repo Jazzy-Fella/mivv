@@ -2,4 +2,3 @@ node_modules/
 .DS_Store
 .claude/
 generate-icons.js
-build-index.js
